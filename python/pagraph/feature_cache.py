@@ -1,8 +1,6 @@
 import torch
 import time
 
-torch.ops.load_library("./build/libpg.so")
-
 
 class FeatureCacheServer:
 
@@ -66,23 +64,5 @@ class FeatureCacheServer:
             )
 
     def __del__(self):
-        torch.ops.pg_ops._CAPI_unpin_tensor(self.feature)
-
-
-if __name__ == "__main__":
-    cpu_data = torch.arange(0, 10000).reshape(100, 100).float()
-
-    full_cache_server = FeatureCacheServer(cpu_data)
-    full_cache_server.cache_feature(torch.tensor([]).int().cuda(), True)
-
-    no_cache_server = FeatureCacheServer(cpu_data)
-    no_cache_server.cache_feature(torch.tensor([]).int().cuda(), False)
-
-    cache_nids = torch.randint(0, 100, (20, )).int().cuda()
-    part_cache_server = FeatureCacheServer(cpu_data)
-    part_cache_server.cache_feature(cache_nids, False)
-
-    index = torch.randint(0, 100, (100, )).long().cuda()
-    print(full_cache_server.fetch_data(index))
-    #print(no_cache_server.fetch_data(index))
-    print(part_cache_server.fetch_data(index))
+        if not self.full_cached:
+            torch.ops.pg_ops._CAPI_unpin_tensor(self.feature)
